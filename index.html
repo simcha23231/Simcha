@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="קזינו ההומור - אימון הומור יומיומי ממכר!">
+    <title>🎰 קזינו ההומור - תהפוך לגאון קומי! 🎰</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1a0033">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Particle Effect Container -->
+    <div id="particles-container"></div>
+
+    <!-- Main App Container -->
+    <div id="app" class="app-container">
+
+        <!-- Navigation -->
+        <nav class="nav-bar">
+            <button class="nav-btn active" data-screen="dashboard">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">בית</span>
+            </button>
+            <button class="nav-btn" data-screen="history">
+                <span class="nav-icon">📚</span>
+                <span class="nav-label">היסטוריה</span>
+            </button>
+            <button class="nav-btn" data-screen="stats">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">סטטיסטיקות</span>
+            </button>
+            <button class="nav-btn" data-screen="settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">הגדרות</span>
+            </button>
+        </nav>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboard-screen" class="screen active">
+            <!-- Header -->
+            <div class="header-section">
+                <h1 class="welcome-text">שלום <span id="user-name" class="highlight">שמחה</span>! 👋</h1>
+                <div class="level-display">
+                    <div class="level-badge">
+                        <span class="level-icon" id="level-icon">🐣</span>
+                        <span class="level-text">רמה <span id="current-level">1</span></span>
+                    </div>
+                    <div class="level-title" id="level-title">טירון ההומור</div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="level-progress">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span id="current-xp">0</span> / <span id="next-level-xp">500</span> נקודות
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Quick View -->
+            <div class="quick-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">🔥</div>
+                    <div class="stat-value" id="streak-count">0</div>
+                    <div class="stat-label">ימים ברצף</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-value" id="total-points">0</div>
+                    <div class="stat-label">נקודות כוללות</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-value" id="total-exercises">0</div>
+                    <div class="stat-label">תרגילים</div>
+                </div>
+            </div>
+
+            <!-- Daily Exercise Card -->
+            <div class="daily-exercise-card" id="daily-exercise-card">
+                <div class="card-header">
+                    <h2 class="card-title">🎲 התרגיל של היום 🎲</h2>
+                    <div class="exercise-type" id="exercise-type">
+                        <span class="type-icon">💥</span>
+                        <span class="type-name">היפרבולה</span>
+                    </div>
+                </div>
+                <div class="exercise-prompt" id="exercise-prompt">
+                    "התור בסופר היה כל כך ארוך ש..."
+                </div>
+                <button class="cta-button" id="start-exercise-btn">
+                    <span class="btn-sparkle">✨</span>
+                    👉 בוא נתחיל! 👈
+                    <span class="btn-sparkle">✨</span>
+                </button>
+                <div class="completion-message" id="completion-message" style="display: none;">
+                    <div class="completion-icon">✅</div>
+                    <div class="completion-text">כבר השלמת את התרגיל של היום!</div>
+                    <div class="completion-subtext">תחזור מחר לתרגיל חדש 🎉</div>
+                </div>
+            </div>
+
+            <!-- Badges Section -->
+            <div class="badges-section">
+                <h3 class="section-title">🏅 ההישגים שלך</h3>
+                <div class="badges-grid" id="badges-grid">
+                    <!-- Badges will be dynamically added -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Exercise Screen -->
+        <div id="exercise-screen" class="screen">
+            <button class="back-button" id="back-to-dashboard">← חזרה</button>
+
+            <div class="exercise-container">
+                <div class="exercise-header">
+                    <div class="exercise-type-display" id="exercise-type-display">
+                        <span class="type-icon-large">💥</span>
+                        <div class="type-info">
+                            <div class="type-name-large" id="type-name-large">היפרבולה</div>
+                            <div class="type-description" id="type-description">קח דבר יומיומי והפוך אותו למוגזם לגמרי!</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="prompt-display" id="prompt-display">
+                    "התור בסופר היה כל כך ארוך ש..."
+                </div>
+
+                <div class="writing-area">
+                    <textarea
+                        id="answer-textarea"
+                        placeholder="כתוב את התשובה שלך כאן... בוא נראה מה המוח הגאוני שלך הכין לנו היום! 🔥"
+                        rows="8"
+                    ></textarea>
+                    <div class="char-counter">
+                        <span id="char-count">0</span> תווים
+                    </div>
+                </div>
+
+                <button class="submit-button" id="submit-answer-btn">
+                    🚀 תשלח את הגאונות הזו! 🚀
+                </button>
+            </div>
+        </div>
+
+        <!-- Feedback Screen -->
+        <div id="feedback-screen" class="screen">
+            <div class="feedback-container">
+                <!-- Celebration Animation -->
+                <div class="celebration" id="celebration">
+                    <div class="explosion-text">💥 בוםםםם! 💥</div>
+                </div>
+
+                <!-- Feedback Content -->
+                <div class="feedback-content" id="feedback-content" style="display: none;">
+                    <div class="feedback-message" id="feedback-message">
+                        שמחה, אתה פשוט גאון. איך המוח שלך עובד ככה?
+                    </div>
+
+                    <div class="points-earned" id="points-earned">
+                        <span class="points-icon">⭐</span>
+                        <span class="points-value">+100</span>
+                        <span class="points-label">נקודות!</span>
+                    </div>
+
+                    <div class="user-answer-display">
+                        <h3>התשובה שלך:</h3>
+                        <div class="answer-box" id="answer-display"></div>
+                    </div>
+
+                    <button class="more-feedback-btn" id="more-feedback-btn">
+                        💡 תגיד לי עוד - איך אני יכול לשפר?
+                    </button>
+
+                    <div class="detailed-feedback" id="detailed-feedback" style="display: none;">
+                        <div class="feedback-section">
+                            <h4>✨ מה עבד טוב:</h4>
+                            <p id="what-worked">ההיפרבולה שלך הייתה מטורפת - הדימוי ממש ברור!</p>
+                        </div>
+                        <div class="feedback-section">
+                            <h4>🚀 רעיון לשיפור:</h4>
+                            <p id="improvement-tip">אם תוסיף עוד פרט קטן אחד, זה יהיה עוד יותר חזק</p>
+                        </div>
+                        <div class="feedback-section">
+                            <h4>🎯 דוגמה משופרת:</h4>
+                            <div class="example-box" id="improved-example">
+                                "התור בסופר היה כל כך ארוך שהגעתי צעיר ויצאתי כבר עם זקן לבן ופנסיה."
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="done-button" id="done-feedback-btn">
+                        🎉 מעולה! חזרה לבית
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Screen -->
+        <div id="history-screen" class="screen">
+            <h2 class="screen-title">📚 ההיסטוריה שלך</h2>
+            <div class="history-container" id="history-container">
+                <div class="empty-state">
+                    <div class="empty-icon">📝</div>
+                    <p>עדיין לא השלמת תרגילים</p>
+                    <p class="empty-subtext">בוא נתחיל! 🚀</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Screen -->
+        <div id="stats-screen" class="screen">
+            <h2 class="screen-title">📊 הסטטיסטיקות שלך</h2>
+            <div class="stats-container">
+                <div class="stat-detail-card">
+                    <div class="stat-detail-icon">🏆</div>
+                    <div class="stat-detail-info">
+                        <div class="stat-detail-label">רמה נוכחית</div>
+                        <div class="stat-detail-value" id="stats-level">1</div>
+                        <div class="stat-detail-sublabel" id="stats-level-title">טירון ההומור 🐣</div>
+                    </div>
+                </div>
+
+                <div class="stat-detail-card">
+                    <div class="stat-detail-icon">⭐</div>
+                    <div class="stat-detail-info">
+                        <div class="stat-detail-label">נקודות כוללות</div>
+                        <div class="stat-detail-value" id="stats-total-points">0</div>
+                    </div>
+                </div>
+
+                <div class="stat-detail-card">
+                    <div class="stat-detail-icon">🔥</div>
+                    <div class="stat-detail-info">
+                        <div class="stat-detail-label">רצף נוכחי</div>
+                        <div class="stat-detail-value"><span id="stats-streak">0</span> ימים</div>
+                    </div>
+                </div>
+
+                <div class="stat-detail-card">
+                    <div class="stat-detail-icon">🏅</div>
+                    <div class="stat-detail-info">
+                        <div class="stat-detail-label">רצף הכי ארוך</div>
+                        <div class="stat-detail-value"><span id="stats-best-streak">0</span> ימים</div>
+                    </div>
+                </div>
+
+                <div class="stat-detail-card full-width">
+                    <div class="stat-detail-icon">📈</div>
+                    <div class="stat-detail-info">
+                        <div class="stat-detail-label">התפלגות תרגילים</div>
+                        <div class="exercise-breakdown" id="exercise-breakdown">
+                            <div class="breakdown-item">
+                                <span>💥 היפרבולה:</span>
+                                <span id="count-hyperbole">0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>🔄 השוואות:</span>
+                                <span id="count-comparisons">0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>🤔 What If:</span>
+                                <span id="count-whatif">0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>👁️ תצפיות:</span>
+                                <span id="count-observations">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Streak Calendar -->
+                <div class="stat-detail-card full-width">
+                    <div class="stat-detail-icon">📅</div>
+                    <div class="stat-detail-info">
+                        <div class="stat-detail-label">7 הימים האחרונים</div>
+                        <div class="streak-calendar" id="streak-calendar">
+                            <!-- Will be dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div id="settings-screen" class="screen">
+            <h2 class="screen-title">⚙️ הגדרות</h2>
+            <div class="settings-container">
+                <div class="setting-card">
+                    <label for="username-input" class="setting-label">שם משתמש</label>
+                    <input
+                        type="text"
+                        id="username-input"
+                        class="setting-input"
+                        placeholder="הכנס את שמך"
+                        maxlength="20"
+                    >
+                    <button class="setting-save-btn" id="save-username-btn">שמור שם</button>
+                </div>
+
+                <div class="setting-card">
+                    <div class="setting-header">
+                        <span class="setting-label">תזכורות יומיות</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notifications-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p class="setting-description">קבל התראה יומית להשלמת תרגיל</p>
+                </div>
+
+                <div class="setting-card">
+                    <button class="danger-btn" id="reset-data-btn">🔄 אפס את כל הנתונים</button>
+                    <p class="setting-description danger-text">פעולה זו תמחק את כל ההתקדמות שלך!</p>
+                </div>
+
+                <div class="setting-card">
+                    <div class="about-section">
+                        <h3>אודות קזינו ההומור</h3>
+                        <p>גרסה 1.0.0</p>
+                        <p>אפליקציית אימון הומור יומיומי ממכרת 🎰</p>
+                        <p>נבנתה עם ❤️ בישראל</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Level Up Modal -->
+    <div id="level-up-modal" class="modal">
+        <div class="modal-content level-up-content">
+            <div class="level-up-animation">
+                <div class="level-up-icon">🎉</div>
+                <h2 class="level-up-title">עלית רמה!</h2>
+                <div class="new-level-display">
+                    <div class="new-level-number">רמה <span id="new-level-number">2</span></div>
+                    <div class="new-level-title" id="new-level-title">קומיקאי מתחיל 🎤</div>
+                </div>
+                <button class="modal-close-btn" id="close-level-up">מעולה! 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
