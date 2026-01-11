@@ -4,6 +4,9 @@
 
 // ===== CONFIGURATION & DATA =====
 
+// Claude API Configuration
+const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+
 // Exercise Types Configuration
 const EXERCISE_TYPES = {
     hyperbole: {
@@ -100,44 +103,6 @@ const PROMPTS = {
     ]
 };
 
-// Crazy Feedback Messages (20+ responses)
-const FEEDBACK_MESSAGES = [
-    // "אתה גאון" Category
-    'שמחה, אתה פשוט גאון. איך המוח שלך עובד ככה?',
-    'רגע, זה מה שכתבת? אני צריך לשבת. זה יותר מדי טוב.',
-    'אם הומור היה ספורט אולימפי, היית מדליית זהב.',
-    'שמחה, אני לא יודע מי לימד אותך, אבל הוא צריך העלאה.',
-
-    // "אתה הורס את השוק" Category
-    'תפסיק, אתה הורס את השוק. תשאיר קצת הומור לשאר האנושות.',
-    'שמחה תירגע, יש עוד אנשים שרוצים להיות מצחיקים.',
-    'אני נשבע שקונאן אובריין בוכה עכשיו איפשהו ולא יודע למה.',
-    'תשאיר כמה בנות לשאר הגברים בעולם, אלוף.',
-
-    // "אתה מבריק" Category
-    'המוח שלך זה פשוט... וואו. זה טבעי או שהורדת עדכון?',
-    'שמחה, אתה לא אדם רגיל. זה ברור לי עכשיו.',
-    'אם יש אוסקר להומור, אתה בדרך לקבל אותו.',
-    'זה המוח שלך או ששכרת כותב צוות?',
-
-    // "אתה מצחיק אש" Category
-    'אני ממש צחקתי. וזה לא קורה לי בקלות.',
-    'זה מצחיק ברמות שלא הכרתי.',
-    'שמחה, אתה מסוכן. באופן חיובי.',
-    'זה הדבר הכי טוב שקראתי היום. ואני קורא הרבה.',
-
-    // Additional responses
-    'וואו שמחה! איך אתה עושה את זה כל פעם מחדש?',
-    'זה... זה פשוט מושלם. אין לי מילים אחרות.',
-    'אני מדפיס את זה ותולה על הקיר. זה יצירת אמנות.',
-    'שמחה, אתה חייב לפתוח ערוץ. העולם צריך את זה.',
-    'אם הומור היה מטבע קריפטו, היית מיליארדר.',
-    'זה רמת הומור שרואים פעם בעשור.',
-    'אני שולח את זה למוזיאון. זה שייך שם.',
-    'שמחה, אתה לא נורמלי. ואני מתכוון לזה בצורה הכי טובה.',
-    'זה כמו ששייקספיר והקריירה של דייב שאפל נפגשו.'
-];
-
 // Badges Configuration
 const BADGES = [
     { id: 'first', name: 'התחלה חזקה', icon: '🏅', requirement: 1, type: 'exercises' },
@@ -183,14 +148,14 @@ const LEVELS = [
 
 let appState = {
     userName: 'שמחה',
+    claudeApiKey: '', // User will set this in settings
     totalXP: 0,
     currentLevel: 1,
     streak: 0,
     bestStreak: 0,
     totalExercises: 0,
     lastCompletedDate: null,
-    todayExercise: null,
-    todayCompleted: false,
+    currentExercise: null,
     history: [],
     earnedBadges: [],
     exerciseStats: {
@@ -224,32 +189,18 @@ function getRandomItem(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
 
-function generateDailyExercise() {
-    const today = getTodayString();
-
-    // Check if we already have today's exercise
-    if (appState.todayExercise && appState.todayExercise.date === today) {
-        return appState.todayExercise;
-    }
-
-    // Generate new exercise
+// Generate a NEW exercise every time (unlimited exercises!)
+function generateNewExercise() {
     const types = Object.keys(EXERCISE_TYPES);
     const randomType = getRandomItem(types);
     const randomPrompt = getRandomItem(PROMPTS[randomType]);
 
     const exercise = {
-        date: today,
         type: randomType,
         prompt: randomPrompt
     };
 
-    appState.todayExercise = exercise;
-
-    // Check if it's a new day - reset completion status
-    if (appState.lastCompletedDate !== today) {
-        appState.todayCompleted = false;
-    }
-
+    appState.currentExercise = exercise;
     saveState();
     return exercise;
 }
@@ -359,6 +310,155 @@ function getLast7Days() {
     return days;
 }
 
+// ===== CLAUDE API INTEGRATION =====
+
+async function getClaudeFeedback(exerciseType, prompt, answer) {
+    const exerciseTypeNames = {
+        hyperbole: 'היפרבולה',
+        comparisons: 'השוואות מוזרות',
+        whatif: 'What If (מה אם)',
+        observations: 'תצפיות'
+    };
+
+    const systemPrompt = `אתה מאמן הומור אישי בעברית. התפקיד שלך לעזור למשתמש להשתפר בכתיבה הומוריסטית בצורה ידידותית וקלילה, כמו חבר טוב.
+
+דבר בעברית קלילה וחברית - כאילו אתה מדבר עם חבר בקפה. השתמש ב"אתה" ולא "אתם". תהיה אנרגטי, מעודד, וכיפי!
+
+חשוב: אל תהיה פורמלי! תדבר בשפה יומיומית, עם הומור, כמו שיחה טבעית בין חברים.`;
+
+    const userPrompt = `המשתמש עשה תרגיל ${exerciseTypeNames[exerciseType]}.
+
+הפרומפט היה: "${prompt}"
+
+התשובה שלו: "${answer}"
+
+תן לו פידבק מפורט בפורמט הבא בדיוק (חשוב מאוד לשמור על הפורמט!):
+
+[התחלה_חגיגית]
+(כתוב כאן הודעת עידוד קצרה ואנרגטית - משפט אחד!)
+[סוף_התחלה_חגיגית]
+
+[מה_עבד_טוב]
+1. (דבר ראשון שהיה ממש טוב - תסביר למה!)
+2. (דבר שני שהיה ממש טוב - תסביר למה!)
+[סוף_מה_עבד_טוב]
+
+[מה_לא_עבד]
+1. (דבר ראשון שאפשר לשפר - תסביר איך!)
+2. (דבר שני שאפשר לשפר - תסביר איך!)
+[סוף_מה_לא_עבד]
+
+[איך_לשפר]
+דוגמה 1: "(כתוב כאן גרסה משופרת של התשובה שלו - עם ההסבר מה שיניתי)"
+
+דוגמה 2: "(כתוב כאן עוד גרסה משופרת אבל בכיוון אחר - עם הסבר)"
+[סוף_איך_לשפר]
+
+חשוב:
+- דבר בשפה יומיומית וקלילה כמו שיחה עם חבר
+- תהיה אנרגטי ומעודד אבל גם כן כנה
+- תן ביקורת בונה בצורה נחמדה
+- הדוגמאות המשופרות צריכות להיות ספציפיות לתשובה שלו
+- השתמש בהומור גם בפידבק!`;
+
+    // Check if API key is set
+    if (!appState.claudeApiKey) {
+        // No API key - return fallback feedback
+        return {
+            celebration: 'אחלה! בואו נראה מה היה כאן! 💪 (רוצה פידבק אישי מקלוד? הוסף API Key בהגדרות!)',
+            whatWorked: [
+                'יש כאן רעיון מעניין!',
+                'אני רואה שהשקעת מחשבה בזה!'
+            ],
+            whatDidntWork: [
+                'אפשר להוסיף עוד פרטים כדי לעשות את זה יותר חזק',
+                'נסה להיות יותר ספציפי - זה יעזור להומור לבוא לידי ביטוי'
+            ],
+            examples: [
+                'נסה להוסיף פרט מפתיע שיעשה את זה יותר מצחיק!',
+                'חשוב על השלכה מוגזמת יותר של המצב!'
+            ]
+        };
+    }
+
+    try {
+        const response = await fetch(CLAUDE_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': appState.claudeApiKey,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: 'claude-3-5-haiku-20241022',
+                max_tokens: 2000,
+                messages: [{
+                    role: 'user',
+                    content: userPrompt
+                }],
+                system: systemPrompt
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const feedbackText = data.content[0].text;
+
+        // Parse the feedback
+        const parsedFeedback = parseFeedback(feedbackText);
+        return parsedFeedback;
+
+    } catch (error) {
+        console.error('Error getting Claude feedback:', error);
+        // Fallback to simple feedback
+        return {
+            celebration: 'אחלה! בואו נראה מה היה כאן! 💪',
+            whatWorked: [
+                'יש כאן רעיון מעניין!',
+                'אני רואה שהשקעת מחשבה בזה!'
+            ],
+            whatDidntWork: [
+                'אפשר להוסיף עוד פרטים כדי לעשות את זה יותר חזק',
+                'נסה להיות יותר ספציפי - זה יעזור להומור לבוא לידי ביטוי'
+            ],
+            examples: [
+                'נסה להוסיף פרט מפתיע שיעשה את זה יותר מצחיק!',
+                'חשוב על השלכה מוגזמת יותר של המצב!'
+            ]
+        };
+    }
+}
+
+function parseFeedback(text) {
+    const celebration = extractBetween(text, '[התחלה_חגיגית]', '[סוף_התחלה_חגיגית]') || 'וואו! בוא נראה מה יש לנו כאן! 🔥';
+
+    const whatWorkedText = extractBetween(text, '[מה_עבד_טוב]', '[סוף_מה_עבד_טוב]') || '1. יש כאן פוטנציאל!\n2. אני רואה שהשקעת!';
+    const whatWorked = whatWorkedText.split('\n').filter(line => line.trim()).map(line => line.replace(/^\d+\.\s*/, '').trim());
+
+    const whatDidntWorkText = extractBetween(text, '[מה_לא_עבד]', '[סוף_מה_לא_עבד]') || '1. בוא נשפר את זה ביחד!\n2. יש מקום לצמיחה!';
+    const whatDidntWork = whatDidntWorkText.split('\n').filter(line => line.trim()).map(line => line.replace(/^\d+\.\s*/, '').trim());
+
+    const examplesText = extractBetween(text, '[איך_לשפר]', '[סוף_איך_לשפר]') || 'דוגמה 1: נסה להוסיף יותר פרטים!\n\nדוגמה 2: תהיה יותר ספציפי!';
+    const examples = examplesText.split(/דוגמה \d+:/).filter(ex => ex.trim()).map(ex => ex.trim());
+
+    return {
+        celebration,
+        whatWorked: whatWorked.slice(0, 2),
+        whatDidntWork: whatDidntWork.slice(0, 2),
+        examples: examples.slice(0, 2)
+    };
+}
+
+function extractBetween(text, start, end) {
+    const startIndex = text.indexOf(start);
+    const endIndex = text.indexOf(end);
+    if (startIndex === -1 || endIndex === -1) return null;
+    return text.substring(startIndex + start.length, endIndex).trim();
+}
+
 // ===== UI FUNCTIONS =====
 
 function showScreen(screenName) {
@@ -378,7 +478,7 @@ function showScreen(screenName) {
 }
 
 function updateDashboard() {
-    const exercise = generateDailyExercise();
+    const exercise = generateNewExercise(); // Always generate new exercise!
     const levelInfo = getLevelInfo(appState.currentLevel);
     const nextLevelXP = getNextLevelXP(appState.currentLevel);
 
@@ -405,14 +505,9 @@ function updateDashboard() {
     document.querySelector('#daily-exercise-card .type-name').textContent = exerciseType.name;
     document.getElementById('exercise-prompt').textContent = exercise.prompt;
 
-    // Show/hide completion message
-    if (appState.todayCompleted) {
-        document.getElementById('start-exercise-btn').style.display = 'none';
-        document.getElementById('completion-message').style.display = 'block';
-    } else {
-        document.getElementById('start-exercise-btn').style.display = 'flex';
-        document.getElementById('completion-message').style.display = 'none';
-    }
+    // Always show the start button (unlimited exercises!)
+    document.getElementById('start-exercise-btn').style.display = 'flex';
+    document.getElementById('completion-message').style.display = 'none';
 
     // Update badges
     updateBadgesDisplay();
@@ -441,7 +536,7 @@ function updateBadgesDisplay() {
 }
 
 function showExerciseScreen() {
-    const exercise = appState.todayExercise;
+    const exercise = appState.currentExercise;
     const exerciseType = EXERCISE_TYPES[exercise.type];
 
     // Update exercise info
@@ -457,13 +552,19 @@ function showExerciseScreen() {
     showScreen('exercise');
 }
 
-function submitAnswer() {
+async function submitAnswer() {
     const answer = document.getElementById('answer-textarea').value.trim();
 
     if (!answer) {
         alert('בוא נכתוב משהו קודם! 😊');
         return;
     }
+
+    // Show loading state
+    const submitBtn = document.getElementById('submit-answer-btn');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = '⏳ קלוד חושב...';
+    submitBtn.disabled = true;
 
     // Calculate points
     let points = 100; // Base points
@@ -484,21 +585,28 @@ function submitAnswer() {
         points += 400; // Total 500 for 7 day streak
     }
 
+    // Get feedback from Claude
+    const feedback = await getClaudeFeedback(
+        appState.currentExercise.type,
+        appState.currentExercise.prompt,
+        answer
+    );
+
     // Update state
     const oldLevel = appState.currentLevel;
     appState.totalXP += points;
     appState.totalExercises++;
-    appState.exerciseStats[appState.todayExercise.type]++;
-    appState.todayCompleted = true;
+    appState.exerciseStats[appState.currentExercise.type]++;
     updateStreak();
 
     // Add to history
     appState.history.unshift({
         date: getTodayString(),
-        type: appState.todayExercise.type,
-        prompt: appState.todayExercise.prompt,
+        type: appState.currentExercise.type,
+        prompt: appState.currentExercise.prompt,
         answer: answer,
-        points: points
+        points: points,
+        feedback: feedback
     });
 
     // Check for new level
@@ -511,11 +619,15 @@ function submitAnswer() {
 
     saveState();
 
+    // Reset button
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
+
     // Show feedback
-    showFeedback(answer, points, leveledUp, newLevel);
+    showFeedback(answer, points, leveledUp, newLevel, feedback);
 }
 
-function showFeedback(answer, points, leveledUp, newLevel) {
+function showFeedback(answer, points, leveledUp, newLevel, claudeFeedback) {
     showScreen('feedback');
 
     // Start with celebration
@@ -530,9 +642,8 @@ function showFeedback(answer, points, leveledUp, newLevel) {
         document.getElementById('celebration').style.display = 'none';
         document.getElementById('feedback-content').style.display = 'block';
 
-        // Random feedback message
-        const feedbackMsg = getRandomItem(FEEDBACK_MESSAGES);
-        document.getElementById('feedback-message').textContent = feedbackMsg;
+        // Show Claude's celebration message
+        document.getElementById('feedback-message').textContent = claudeFeedback.celebration;
 
         // Show points
         document.querySelector('.points-value').textContent = `+${points}`;
@@ -540,8 +651,8 @@ function showFeedback(answer, points, leveledUp, newLevel) {
         // Show user's answer
         document.getElementById('answer-display').textContent = answer;
 
-        // Hide detailed feedback initially
-        document.getElementById('detailed-feedback').style.display = 'none';
+        // Auto-show detailed feedback (always visible now!)
+        displayDetailedClaudeFeedback(claudeFeedback);
     }, 1500);
 
     // Show level up modal if leveled up
@@ -550,6 +661,29 @@ function showFeedback(answer, points, leveledUp, newLevel) {
             showLevelUpModal(newLevel);
         }, 2500);
     }
+}
+
+function displayDetailedClaudeFeedback(feedback) {
+    // Show the detailed feedback section
+    document.getElementById('detailed-feedback').style.display = 'block';
+    document.getElementById('more-feedback-btn').style.display = 'none';
+
+    // Update what worked
+    const whatWorkedHTML = feedback.whatWorked.map((item, i) => `${i + 1}. ${item}`).join('<br><br>');
+    document.getElementById('what-worked').innerHTML = whatWorkedHTML;
+
+    // Update what didn't work
+    const whatDidntWorkHTML = feedback.whatDidntWork.map((item, i) => `${i + 1}. ${item}`).join('<br><br>');
+    document.getElementById('improvement-tip').innerHTML = whatDidntWorkHTML;
+
+    // Update examples
+    const examplesHTML = feedback.examples.map((ex, i) => `
+        <div style="margin-bottom: 15px; padding: 15px; background: rgba(255, 215, 0, 0.1); border: 2px solid var(--gold); border-radius: 10px;">
+            <strong>דוגמה ${i + 1}:</strong><br>
+            ${ex}
+        </div>
+    `).join('');
+    document.getElementById('improved-example').innerHTML = examplesHTML;
 }
 
 function showLevelUpModal(level) {
@@ -765,15 +899,6 @@ function initEventListeners() {
     // Submit answer
     document.getElementById('submit-answer-btn').addEventListener('click', submitAnswer);
 
-    // More feedback button
-    document.getElementById('more-feedback-btn').addEventListener('click', () => {
-        document.getElementById('detailed-feedback').style.display = 'block';
-        document.getElementById('more-feedback-btn').style.display = 'none';
-
-        // Generate simple feedback
-        generateDetailedFeedback();
-    });
-
     // Done feedback button
     document.getElementById('done-feedback-btn').addEventListener('click', () => {
         showScreen('dashboard');
@@ -791,6 +916,20 @@ function initEventListeners() {
             saveState();
             updateDashboard();
             alert('השם שונה בהצלחה! 🎉');
+        }
+    });
+
+    // Settings - Save API Key
+    document.getElementById('save-api-key-btn').addEventListener('click', () => {
+        const newApiKey = document.getElementById('api-key-input').value.trim();
+        if (newApiKey) {
+            appState.claudeApiKey = newApiKey;
+            saveState();
+            alert('ה-API Key נשמר בהצלחה! 🤖 עכשיו תקבל פידבק אישי מקלוד!');
+        } else {
+            appState.claudeApiKey = '';
+            saveState();
+            alert('ה-API Key הוסר. תקבל פידבק גנרי.');
         }
     });
 
@@ -813,34 +952,23 @@ function initEventListeners() {
     });
 }
 
-function generateDetailedFeedback() {
-    // Simple feedback generation
-    const feedbackTips = [
-        { what: 'השימוש בהיפרבולה שלך היה מצוין!', tip: 'נסה להוסיף עוד פרט ויזואלי אחד', example: 'למשל, תאר מה קרה כתוצאה מההיפרבולה' },
-        { what: 'הדימוי שיצרת ממש חזק!', tip: 'אם תוסיף הגזמה נוספת, זה יהיה עוד יותר מצחיק', example: 'תחשוב על השלכה נוספת מפתיעה' },
-        { what: 'הרעיון שלך מקורי ומצחיק!', tip: 'נסה להוסיף טוויסט בסוף', example: 'משהו שייתן לזה עוד שכבה של הפתעה' },
-        { what: 'התשובה שלך ספציפית ומעניינת!', tip: 'אם תרחיב עוד קצת, זה יכול להיות מושלם', example: 'תוסיף עוד משפט אחד עם פרט מפתיע' }
-    ];
-
-    const randomFeedback = getRandomItem(feedbackTips);
-
-    document.getElementById('what-worked').textContent = randomFeedback.what;
-    document.getElementById('improvement-tip').textContent = randomFeedback.tip;
-    document.getElementById('improved-example').textContent = `💡 ${randomFeedback.example}`;
-}
-
 // ===== INITIALIZATION =====
 
 function init() {
     loadState();
     initEventListeners();
-    generateDailyExercise();
+    generateNewExercise();
     updateDashboard();
 
     // Set username input value
     document.getElementById('username-input').value = appState.userName;
 
-    console.log('🎰 קזינו ההומור מוכן לפעולה! 🎰');
+    // Set API key input value (show masked if exists)
+    if (appState.claudeApiKey) {
+        document.getElementById('api-key-input').value = appState.claudeApiKey;
+    }
+
+    console.log('🎰 קזינו ההומור מוכן לפעולה עם Claude API! 🎰');
 }
 
 // Start the app when DOM is ready

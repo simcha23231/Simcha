@@ -311,6 +311,23 @@
                 </div>
 
                 <div class="setting-card">
+                    <label for="api-key-input" class="setting-label">🤖 Claude API Key (לפידבק אישי)</label>
+                    <input
+                        type="password"
+                        id="api-key-input"
+                        class="setting-input"
+                        placeholder="sk-ant-api03-..."
+                        style="font-family: monospace; font-size: 13px;"
+                    >
+                    <button class="setting-save-btn" id="save-api-key-btn">שמור API Key</button>
+                    <p class="setting-description" style="margin-top: 10px;">
+                        💡 בלי API Key תקבל פידבק גנרי. עם API Key - פידבק אישי מקלוד על כל תרגיל!<br>
+                        📍 איך לקבל? לך ל-<a href="https://console.anthropic.com" target="_blank" style="color: var(--gold);">console.anthropic.com</a> → הירשם → צור API Key<br>
+                        💰 עלות: ~2-3 סנט לתרגיל (5$ = ~200 תרגילים!)
+                    </p>
+                </div>
+
+                <div class="setting-card">
                     <div class="setting-header">
                         <span class="setting-label">תזכורות יומיות</span>
                         <label class="toggle-switch">
