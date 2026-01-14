@@ -12,22 +12,42 @@ const EXERCISE_TYPES = {
     hyperbole: {
         name: 'היפרבולה',
         icon: '💥',
-        description: 'קח דבר יומיומי והפוך אותו למוגזם לגמרי!'
+        description: 'קח דבר יומיומי והפוך אותו למוגזם לגמרי!',
+        hints: [
+            '💡 תחשוב על דבר יומיומי שמעצבן אותך',
+            '💡 הגזם אותו עד הסוף - ככל שיותר אבסורדי, יותר מצחיק!',
+            '💡 הוסף פרטים ויזואליים שעוזרים לדמיין את המצב'
+        ]
     },
     comparisons: {
         name: 'השוואות מוזרות',
         icon: '🔄',
-        description: 'השווה דבר אחד לדבר אחר לגמרי לא קשור!'
+        description: 'השווה דבר אחד לדבר אחר לגמרי לא קשור!',
+        hints: [
+            '💡 חפש דבר אחד שמעצבן או מסובך בחיים',
+            '💡 חבר אותו למשהו לגמרי לא קשור אבל שיש לו הגיון מעוות',
+            '💡 תסביר למה הם דומים בצורה מפתיעה'
+        ]
     },
     whatif: {
         name: 'What If',
         icon: '🤔',
-        description: 'קח מצב רגיל ושנה אותו לחלוטין - מה היה קורה?'
+        description: 'קח מצב רגיל ושנה אותו לחלוטין - מה היה קורה?',
+        hints: [
+            '💡 תאר מצב אבסורדי שקורה בפועל',
+            '💡 מה ההשלכות המטורפות של המצב הזה?',
+            '💡 תוסיף עוד תרחיש שמחמיר את המצב'
+        ]
     },
     observations: {
         name: 'תצפיות',
         icon: '👁️',
-        description: 'מצא את המצחיק במצב יומיומי שכולם מכירים!'
+        description: 'מצא את המצחיק במצב יומיומי שכולם מכירים!',
+        hints: [
+            '💡 תחשוב על משהו שכולם עושים אבל אף אחד לא מדבר עליו',
+            '💡 תצביע על הסתירה או האבסורד במצב',
+            '💡 תגרום לאנשים לומר "כן! זה בדיוק ככה!"'
+        ]
     }
 };
 
@@ -103,6 +123,18 @@ const PROMPTS = {
     ]
 };
 
+// Excited GIFs for feedback (rotating)
+const EXCITED_GIFS = [
+    'https://media.giphy.com/media/3ohzdIuqJoo8QdKlnW/giphy.gif', // YES celebration
+    'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif', // Dancing celebration
+    'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif', // Excited jump
+    'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif', // Awesome
+    'https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif', // Epic celebration
+    'https://media.giphy.com/media/26u4cqiYI30juCOGY/giphy.gif', // Mind blown
+    'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif', // Clapping excited
+    'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif'  // Pumped up
+];
+
 // Badges Configuration
 const BADGES = [
     { id: 'first', name: 'התחלה חזקה', icon: '🏅', requirement: 1, type: 'exercises' },
@@ -156,6 +188,7 @@ let appState = {
     totalExercises: 0,
     lastCompletedDate: null,
     currentExercise: null,
+    lastExerciseType: null, // Track last exercise type for sequential order
     history: [],
     earnedBadges: [],
     exerciseStats: {
@@ -189,18 +222,29 @@ function getRandomItem(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
 
-// Generate a NEW exercise every time (unlimited exercises!)
+// Generate a NEW exercise in sequential order (hyperbole → comparisons → whatif → observations)
 function generateNewExercise() {
-    const types = Object.keys(EXERCISE_TYPES);
-    const randomType = getRandomItem(types);
-    const randomPrompt = getRandomItem(PROMPTS[randomType]);
+    const typesOrder = ['hyperbole', 'comparisons', 'whatif', 'observations'];
+
+    // Find next type in sequence
+    let nextType;
+    if (!appState.lastExerciseType) {
+        nextType = typesOrder[0]; // Start with hyperbole
+    } else {
+        const currentIndex = typesOrder.indexOf(appState.lastExerciseType);
+        const nextIndex = (currentIndex + 1) % typesOrder.length;
+        nextType = typesOrder[nextIndex];
+    }
+
+    const randomPrompt = getRandomItem(PROMPTS[nextType]);
 
     const exercise = {
-        type: randomType,
+        type: nextType,
         prompt: randomPrompt
     };
 
     appState.currentExercise = exercise;
+    appState.lastExerciseType = nextType;
     saveState();
     return exercise;
 }
@@ -324,7 +368,15 @@ async function getClaudeFeedback(exerciseType, prompt, answer) {
 
 דבר בעברית קלילה וחברית - כאילו אתה מדבר עם חבר בקפה. השתמש ב"אתה" ולא "אתם". תהיה אנרגטי, מעודד, וכיפי!
 
-חשוב: אל תהיה פורמלי! תדבר בשפה יומיומית, עם הומור, כמו שיחה טבעית בין חברים.`;
+חשוב: אל תהיה פורמלי! תדבר בשפה יומיומית, עם הומור, כמו שיחה טבעית בין חברים.
+
+אתה מלמד לפי השיטה של קונן אובריין:
+- Premise (הנחת יסוד) + Heightening (החרפה והגזמה)
+- שימוש בפרטים ספציפיים ומפתיעים
+- בניית שכבות של הומור אחת על השנייה
+- חיבור לדברים שכולם מכירים אבל אף אחד לא אמר
+
+זכור: ההומור הכי חזק בא מפרטים ספציפיים ומהחרפת המצב צעד אחר צעד.`;
 
     const userPrompt = `המשתמש עשה תרגיל ${exerciseTypeNames[exerciseType]}.
 
@@ -362,8 +414,11 @@ async function getClaudeFeedback(exerciseType, prompt, answer) {
 - השתמש בהומור גם בפידבק!`;
 
     // Check if API key is set
+    console.log('🔑 API Key check:', appState.claudeApiKey ? `Present (${appState.claudeApiKey.substring(0,10)}...)` : 'Missing');
+
     if (!appState.claudeApiKey) {
         // No API key - return fallback feedback
+        console.log('⚠️ No API Key - returning fallback feedback');
         return {
             celebration: 'אחלה! בואו נראה מה היה כאן! 💪 (רוצה פידבק אישי מקלוד? הוסף API Key בהגדרות!)',
             whatWorked: [
@@ -380,6 +435,8 @@ async function getClaudeFeedback(exerciseType, prompt, answer) {
             ]
         };
     }
+
+    console.log('✅ API Key found - calling Claude API...');
 
     try {
         const response = await fetch(CLAUDE_API_URL, {
@@ -545,6 +602,16 @@ function showExerciseScreen() {
     document.getElementById('type-description').textContent = exerciseType.description;
     document.getElementById('prompt-display').textContent = exercise.prompt;
 
+    // Display hints
+    const hintsList = document.getElementById('hints-list');
+    hintsList.innerHTML = '';
+    exerciseType.hints.forEach(hint => {
+        const hintElement = document.createElement('div');
+        hintElement.className = 'hint-item';
+        hintElement.textContent = hint;
+        hintsList.appendChild(hintElement);
+    });
+
     // Clear textarea
     document.getElementById('answer-textarea').value = '';
     document.getElementById('char-count').textContent = '0';
@@ -641,6 +708,12 @@ function showFeedback(answer, points, leveledUp, newLevel, claudeFeedback) {
     setTimeout(() => {
         document.getElementById('celebration').style.display = 'none';
         document.getElementById('feedback-content').style.display = 'block';
+
+        // Show random excited GIF
+        const randomGif = getRandomItem(EXCITED_GIFS);
+        const gifElement = document.getElementById('excited-gif');
+        gifElement.src = randomGif;
+        gifElement.style.display = 'block';
 
         // Show Claude's celebration message
         document.getElementById('feedback-message').textContent = claudeFeedback.celebration;
@@ -925,10 +998,12 @@ function initEventListeners() {
         if (newApiKey) {
             appState.claudeApiKey = newApiKey;
             saveState();
+            console.log('✅ API Key saved successfully! Length:', newApiKey.length);
             alert('ה-API Key נשמר בהצלחה! 🤖 עכשיו תקבל פידבק אישי מקלוד!');
         } else {
             appState.claudeApiKey = '';
             saveState();
+            console.log('❌ API Key removed');
             alert('ה-API Key הוסר. תקבל פידבק גנרי.');
         }
     });
