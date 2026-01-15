@@ -10,9 +10,9 @@ const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 // Exercise Types Configuration
 const EXERCISE_TYPES = {
     hyperbole: {
-        name: 'היפרבולה',
+        name: 'היפרבולה (הגזמה)',
         icon: '💥',
-        description: 'קח דבר יומיומי והפוך אותו למוגזם לגמרי!',
+        description: 'קח דבר יומיומי והפוך אותו למוגזם לגמרי! ככל שיותר אבסורדי - יותר מצחיק!',
         hints: [
             '💡 תחשוב על דבר יומיומי שמעצבן אותך',
             '💡 הגזם אותו עד הסוף - ככל שיותר אבסורדי, יותר מצחיק!',
@@ -22,31 +22,11 @@ const EXERCISE_TYPES = {
     comparisons: {
         name: 'השוואות מוזרות',
         icon: '🔄',
-        description: 'השווה דבר אחד לדבר אחר לגמרי לא קשור!',
+        description: 'השווה דבר אחד לדבר אחר לגמרי לא קשור! מצא חיבור מפתיע בין שני דברים!',
         hints: [
             '💡 חפש דבר אחד שמעצבן או מסובך בחיים',
             '💡 חבר אותו למשהו לגמרי לא קשור אבל שיש לו הגיון מעוות',
             '💡 תסביר למה הם דומים בצורה מפתיעה'
-        ]
-    },
-    whatif: {
-        name: 'What If',
-        icon: '🤔',
-        description: 'קח מצב רגיל ושנה אותו לחלוטין - מה היה קורה?',
-        hints: [
-            '💡 תאר מצב אבסורדי שקורה בפועל',
-            '💡 מה ההשלכות המטורפות של המצב הזה?',
-            '💡 תוסיף עוד תרחיש שמחמיר את המצב'
-        ]
-    },
-    observations: {
-        name: 'תצפיות',
-        icon: '👁️',
-        description: 'מצא את המצחיק במצב יומיומי שכולם מכירים!',
-        hints: [
-            '💡 תחשוב על משהו שכולם עושים אבל אף אחד לא מדבר עליו',
-            '💡 תצביע על הסתירה או האבסורד במצב',
-            '💡 תגרום לאנשים לומר "כן! זה בדיוק ככה!"'
         ]
     }
 };
@@ -86,40 +66,6 @@ const PROMPTS = {
         'לנסות להסביר לסבתא מה זה אינסטגרם זה כמו...',
         'פגישת זום זה כמו...',
         'לנסות להתחבר לווייפי ציבורי זה כמו...'
-    ],
-    whatif: [
-        'מה אם פגישות זום היו בעולם אמיתי?',
-        'מה אם כלבים היו המנכ"לים?',
-        'מה אם היה חוק שאוסר על קפה?',
-        'מה אם מכוניות היו מסוגלות לדבר?',
-        'מה אם גשם היה נופל מלמטה למעלה?',
-        'מה אם סמארטפונים היו בעלי חיים?',
-        'מה אם כולם היו צריכים לשיר במקום לדבר?',
-        'מה אם השינה הייתה מיותרת?',
-        'מה אם הכסף היה גדל על עצים?',
-        'מה אם פרות היו יכולות לעוף?',
-        'מה אם כל הבגדים היו שקופים?',
-        'מה אם היינו יכולים לקרוא מחשבות?',
-        'מה אם היינו חיים לאחור מזקנה לילדות?',
-        'מה אם אוכל היה מלמד?',
-        'מה אם כל אחד היה מדבר בחרוזים?'
-    ],
-    observations: [
-        'למה זה שכולם...',
-        'אי פעם שמתם לב ש...',
-        'הדבר הכי מוזר בלהיות מבוגר זה...',
-        'אף אחד לא מדבר על זה, אבל...',
-        'רגע האמת הוא כש...',
-        'למה תמיד כש...',
-        'אף אחד לא מודה בזה, אבל כולם...',
-        'הרגע הכי מביך זה כש...',
-        'למה זה שבכל פעם ש...',
-        'אי פעם שמתם לב שכל המבוגרים...',
-        'הסיטואציה הכי ישראלית זה כש...',
-        'למה זה שברגע שיושבים במסעדה...',
-        'הדבר שאף אחד לא אומר אבל כולם חושבים...',
-        'למה זה שברגע שמתחילים דיאטה...',
-        'הרגע שבו אתה מבין שאתה מבוגר זה כש...'
     ]
 };
 
@@ -193,9 +139,7 @@ let appState = {
     earnedBadges: [],
     exerciseStats: {
         hyperbole: 0,
-        comparisons: 0,
-        whatif: 0,
-        observations: 0
+        comparisons: 0
     },
     last7Days: []
 };
@@ -222,9 +166,9 @@ function getRandomItem(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
 
-// Generate a NEW exercise in sequential order (hyperbole → comparisons → whatif → observations)
+// Generate a NEW exercise in sequential order (hyperbole ↔ comparisons)
 function generateNewExercise() {
-    const typesOrder = ['hyperbole', 'comparisons', 'whatif', 'observations'];
+    const typesOrder = ['hyperbole', 'comparisons'];
 
     // Find next type in sequence
     let nextType;
@@ -358,10 +302,8 @@ function getLast7Days() {
 
 async function getClaudeFeedback(exerciseType, prompt, answer) {
     const exerciseTypeNames = {
-        hyperbole: 'היפרבולה',
-        comparisons: 'השוואות מוזרות',
-        whatif: 'What If (מה אם)',
-        observations: 'תצפיות'
+        hyperbole: 'היפרבולה (הגזמה)',
+        comparisons: 'השוואות מוזרות'
     };
 
     const systemPrompt = `אתה מאמן הומור אישי בעברית. התפקיד שלך לעזור למשתמש להשתפר בכתיבה הומוריסטית בצורה ידידותית וקלילה, כמו חבר טוב.
